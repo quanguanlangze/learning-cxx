@@ -10,6 +10,10 @@ struct Tensor4D {
     Tensor4D(unsigned int const shape_[4], T const *data_) {
         unsigned int size = 1;
         // TODO: 填入正确的 shape 并计算 size
+        for (int i = 0; i < 4; i++) {
+            shape[i] = shape_[i];
+            size *= shape[i];
+        }
         data = new T[size];
         std::memcpy(data, data_, size * sizeof(T));
     }
@@ -28,6 +32,32 @@ struct Tensor4D {
     // 则 `this` 与 `others` 相加时，3 个形状为 `[1, 2, 1, 4]` 的子张量各自与 `others` 对应项相加。
     Tensor4D &operator+=(Tensor4D const &others) {
         // TODO: 实现单向广播的加法
+            unsigned int broadcasted_shape[4];
+            for (int i = 0; i < 4; ++i) {
+                broadcasted_shape[i] = (shape[i] == others.shape[i] || others.shape[i] == 1) ? shape[i] : 0;
+            }
+
+            for (unsigned int i = 0; i < broadcasted_shape[0]; ++i) {
+                for (unsigned int j = 0; j < broadcasted_shape[1]; ++j) {
+                    for (unsigned int k = 0; k < broadcasted_shape[2]; ++k) {
+                        for (unsigned int l = 0; l < broadcasted_shape[3]; ++l) {
+                            unsigned int index_self[4] = {i, j, k, l};
+                            unsigned int index_others[4] = {i % others.shape[0], j % others.shape[1], k % others.shape[2], l % others.shape[3]};
+                            unsigned int flat_index_self = index_self[0] * shape[1] * shape[2] * shape[3] +
+                                                            index_self[1] * shape[2] * shape[3] +
+                                                            index_self[2] * shape[3] +
+                                                            index_self[3];
+                            unsigned int flat_index_others = index_others[0] * others.shape[1] * others.shape[2] * others.shape[3] +
+                                                                index_others[1] * others.shape[2] * others.shape[3] +
+                                                                index_others[2] * others.shape[3] +
+                                                                index_others[3];
+                            data[flat_index_self] += others.data[flat_index_others];
+                        }
+                    }
+                }
+            }
+
+
         return *this;
     }
 };
